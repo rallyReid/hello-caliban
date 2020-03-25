@@ -1,21 +1,29 @@
 package example
+import caliban.{CalibanError, ResponseValue}
 import caliban.wrappers.Wrappers.{maxDepth, printSlowQueries, timeout}
 import caliban.wrappers.ApolloTracing.apolloTracing
-import example.FunModels.{CharacterNotFound, Character}
+import zio.clock.Clock
+import zio.{URIO, ZIO}
+import zio.console._
 import zio.duration._
-import zio.IO
 
-object Hello extends App {
+object Hello extends zio.App {
 
-  val service = new FunServiceV1(new FunData)
+
+  case class Character(name: String, age: Int)
+
+  private val CharactersDb = List(Character("reid", 32))
+
+  def getCharacters: List[Character] = CharactersDb
+  def getCharacter(name: String): Option[Character] = CharactersDb.find(c => c.name == name)
 
   // Our API
   // schema
-  case class Queries(character: CharacterName => IO[CharacterNotFound, Character])
+  case class CharacterName(name: String)
+  case class Queries(characters: List[Character],
+                     character: CharacterName => Option[Character])
   // resolver
-  val queries = Queries(
-    args => service.getCharacter(args.name)
-    )
+  val queries = Queries(getCharacters, args => getCharacter(args.name))
 
   import caliban.GraphQL.graphQL
   import caliban.RootResolver
@@ -26,7 +34,7 @@ object Hello extends App {
       printSlowQueries(500.millis) @@
       apolloTracing
 
-  println(api.render)
+//  println(api.render)
 
 
   /*
@@ -35,7 +43,8 @@ object Hello extends App {
   wrapper around the API definition that allows plugging in some middleware and
   possibly modifying the environment and error types (see Middleware for more info).
    */
-  val interpreter = api.interpreter
+
+  case class GraphQLResponse[+E](data: ResponseValue, errors: List[E])
 
   val query =
     """
@@ -46,10 +55,14 @@ object Hello extends App {
       |}
       |""".stripMargin
 
-  for {
+  lazy val myAppLogic: ZIO[Console with Clock, CalibanError.ValidationError, Unit] = for {
+    _           <- putStrLn(api.render)
+    interpreter <- api.interpreter
     result      <- interpreter.execute(query)
-    _           <- zio.console.putStrLn(result.data.toString)
+    _           <- putStrLn(result.data.toString)
   } yield ()
 
-
+  def run(args: List[String]): URIO[Console with Clock, Int] = {
+    myAppLogic.fold(_ => 1, _ => 0)
+  }
 }
