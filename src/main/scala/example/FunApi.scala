@@ -2,10 +2,10 @@ package example
 
 import caliban.{GraphQL, RootResolver}
 import caliban.GraphQL.graphQL
-import caliban.schema.Annotations.{GQLDeprecated, GQLDescription}
+import caliban.schema.Annotations.GQLDeprecated
 import caliban.schema.GenericSchema
 import caliban.wrappers.Wrappers.{maxDepth, printSlowQueries, timeout}
-import example.FunService.{getCharacter, getCharacters, ExampleService}
+import example.FunService.{getCharacter, ExampleService}
 import zio.clock.Clock
 import zio.console.Console
 import zio.duration._
@@ -16,12 +16,12 @@ import zio.URIO
 object FunApi extends GenericSchema[ExampleService] {
 
   case class Queries(
-    @GQLDeprecated("Use `characters`")
     character: CharacterArgs => URIO[ExampleService, Option[Character]]
   )
 
   val queries = Queries(args => getCharacter(args.name))
   implicit val characterSchema = gen[Character]
+  implicit val characterArgsSchema  = gen[CharacterArgs]
 
   val funApi: GraphQL[Console with Clock with ExampleService] =
     graphQL(
