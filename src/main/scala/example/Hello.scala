@@ -1,58 +1,56 @@
 package example
 
-import caliban.{CalibanError, GraphQL, ResponseValue}
-import caliban.wrappers.Wrappers.{maxDepth, printSlowQueries, timeout}
-import caliban.wrappers.ApolloTracing.apolloTracing
-import zio.clock.Clock
-import zio.{URIO, ZIO}
-import zio.console._
-import zio.duration._
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives._
+import caliban.ResponseValue
+import caliban.interop.circe.AkkaHttpCirceAdapter
+import example.FunData.Character
+import example.FunService._
+import zio.{Runtime, ZEnv, ZLayer}
 
-object Hello extends zio.App {
+import scala.concurrent.ExecutionContextExecutor
+import scala.io.StdIn
 
-  def run(args: List[String]): URIO[Console with Clock, Int] = {
-    myAppLogic.fold(_ => 1, _ => 0)
-  }
+object Hello extends App with AkkaHttpCirceAdapter {
 
-  case class Character(name: String, age: Int)
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  implicit val runtime: Runtime[ZEnv] = Runtime.default
 
   private val CharactersDb = List(Character("reid", 32), Character("lauren", 28))
 
-  def getCharacters: List[Character] = CharactersDb
-  def getCharacter(name: String): Option[Character] = CharactersDb.find(c => c.name == name)
+  val service: ZLayer[Any, Nothing, ExampleService] = make(CharactersDb)
 
-  // Our API
-  // schema
-  case class CharacterName(name: String)
-  case class Queries(characters: List[Character], character: CharacterName => Option[Character])
-  // resolver
-  val queries = Queries(getCharacters, args => getCharacter(args.name))
+  val interpreter = runtime.unsafeRun(
+    FunService
+      .make(CharactersDb)
+      .memoize
+      .use(layer => FunApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
+  )
 
-  import caliban.GraphQL.graphQL
-  import caliban.RootResolver
-
-  val api: GraphQL[Console with Clock] = graphQL(RootResolver(queries)) @@
-    maxDepth(50) @@
-    timeout(3.second) @@
-    printSlowQueries(500.millis) @@
-    apolloTracing
+  val route =
+    path("api" / "graphql") {
+      adapter.makeHttpService(interpreter)
+    } ~ path("graphiql") {
+      getFromResource("graphiql.html")
+    }
 
   case class GraphQLResponse[+E](data: ResponseValue, errors: List[E])
 
   val query: String =
     """
       |{
-      |   character(reid) {
+      |   character(name: "reid") {
       |     name
       |   }
       |}
       |""".stripMargin
 
-  lazy val myAppLogic: ZIO[Console with Clock, CalibanError.ValidationError, Unit] = for {
-    _           <- putStrLn(api.render)
-    interpreter <- api.interpreter
-    result      <- interpreter.execute(query)
-    _           <- putStrLn(result.data.toString)
-  } yield ()
-
+  val bindingFuture = Http().bindAndHandle(route, "localhost", 8088)
+  println(s"Server online at http://localhost:8088/\nPress RETURN to stop...")
+  StdIn.readLine()
+  bindingFuture
+    .flatMap(_.unbind())
+    .onComplete(_ => system.terminate())
 }
