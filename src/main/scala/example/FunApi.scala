@@ -28,7 +28,7 @@ object FunApi extends GenericSchema[ExampleService] {
       RootResolver(queries)
     ) @@ maxDepth(50) @@
     timeout(3.seconds) @@
-    printSlowQueries(500.millis) @@
+    printSlowQueries(1500.millis) @@
     apolloTracing
 
 }
