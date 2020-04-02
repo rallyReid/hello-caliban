@@ -1,25 +1,22 @@
 package example
 
-import zio.{Has, Queue, Ref, UIO, URIO, ZLayer}
-import FunData.{CharacterArgs, Character}
-
+import example.FunData.Character
+import zio._
 
 /**
- * taken from [Caliban](https://github.com/ghostdogpr/caliban/blob/master/examples/src/main/scala/caliban/ExampleService.scala)
- */
+  * taken from [Caliban](https://github.com/ghostdogpr/caliban/blob/master/examples/src/main/scala/caliban/ExampleService.scala)
+  */
 object FunService {
 
   type ExampleService = Has[Service]
 
   trait Service {
-    def getCharacters(name: Option[String]): UIO[List[Character]]
+    def getCharacters: UIO[List[Character]]
     def getCharacter(name: String): UIO[Option[Character]]
     def deleteCharacter(name: String): UIO[Boolean]
   }
 
-  def getCharacters(
-    name: Option[String]
-  ): URIO[ExampleService, List[Character]] = URIO.accessM(_.get.getCharacters(name))
+  def getCharacters: URIO[ExampleService, List[Character]] = URIO.accessM(_.get.getCharacters)
 
   def getCharacter(
     name: String
@@ -33,10 +30,8 @@ object FunService {
       characters  <- Ref.make(initial)
       subscribers <- Ref.make(List.empty[Queue[String]])
     } yield new Service {
-      def getCharacters(
-        name: Option[String]
-      ): UIO[List[Character]] = {
-        characters.get.map(_.filter(c => name.forall(c.name == _)))
+      def getCharacters: UIO[List[Character]] = {
+        characters.get
       }
       def getCharacter(
         name: String

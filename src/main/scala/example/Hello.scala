@@ -3,7 +3,6 @@ package example
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
-import caliban.ResponseValue
 import caliban.interop.circe.AkkaHttpCirceAdapter
 import example.FunData.Character
 import example.FunService._
@@ -35,8 +34,6 @@ object Hello extends App with AkkaHttpCirceAdapter {
     } ~ path("graphiql") {
       getFromResource("graphiql.html")
     }
-
-  case class GraphQLResponse[+E](data: ResponseValue, errors: List[E])
 
   val query: String =
     """
