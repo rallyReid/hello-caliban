@@ -1,14 +1,15 @@
 package example
 
-import example.FunData.{Person, Relationship}
+import example.PeopleData.{Person, Relationship}
 import zio._
+import zio.stream.ZStream
 
 /**
   * taken from [Caliban](https://github.com/ghostdogpr/caliban/blob/master/examples/src/main/scala/caliban/ExampleService.scala)
   */
-object FunService {
+object PeopleService {
 
-  type ExampleService = Has[Service]
+  type PeopleService = Has[Service]
 
   trait Service {
     def allPeople: UIO[List[Person]]
@@ -16,9 +17,11 @@ object FunService {
     def removePerson(name: String): UIO[Boolean]
     def familyByLastName(lastName:String): UIO[Option[List[Person]]]
     def filterPeople(name: Option[String], relationShip: Option[Relationship] = None): UIO[List[Person]]
+//    def addPerson(p: Person): UIO[Boolean]
+    def deletedEvents: ZStream[Any, Nothing, String]
   }
 
-  def make(initialPeople: List[Person]): ZLayer[Any, Nothing, ExampleService] =
+  def make(initialPeople: List[Person]): ZLayer[Any, Nothing, PeopleService] =
     ZLayer.fromEffect {
       for {
         peopleRepo  <- Ref.make(initialPeople)
@@ -83,6 +86,18 @@ object FunService {
               )
             )
         }
+
+//        def addPerson(p: Person): UIO[Boolean] = {
+//        ???
+//        }
+
+        def deletedEvents: ZStream[Any, Nothing, String] = ZStream.unwrap {
+          for {
+            queue <- Queue.unbounded[String]
+            _     <- subscribers.update(queue :: _)
+          } yield ZStream.fromQueue(queue).ensuring(queue.shutdown)
+        }
+
       }
     }
 }

@@ -10,17 +10,17 @@ import zio.{Runtime, ZEnv}
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
 
-object FunCalibanServer extends App with AkkaHttpCirceAdapter {
+object ThePeoplesCalibanServer extends App with AkkaHttpCirceAdapter {
 
   implicit val system: ActorSystem = ActorSystem()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val runtime: Runtime[ZEnv] = Runtime.default
 
   val interpreter: GraphQLInterpreter[zio.ZEnv, CalibanError] = runtime.unsafeRun(
-    FunService
-      .make(FunData.personDb)
+    PeopleService
+      .make(PeopleData.personDb)
       .memoize
-      .use(layer => FunApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
+      .use(layer => PersonApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
   )
 
   val route =

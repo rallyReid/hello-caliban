@@ -1,9 +1,9 @@
 package example
 
 import caliban.schema.Annotations.GQLDescription
-import example.FunData.Relationship.{CHILD, PARENT}
+import example.PeopleData.Relationship.{CHILD, PARENT}
 
-object FunData {
+object PeopleData {
 
   case class Person(
     @GQLDescription("a unique Id for a family member")
