@@ -18,7 +18,7 @@ object FunCalibanServer extends App with AkkaHttpCirceAdapter {
 
   val interpreter: GraphQLInterpreter[zio.ZEnv, CalibanError] = runtime.unsafeRun(
     FunService
-      .make(FunData.CharactersDb)
+      .make(FunData.personDb)
       .memoize
       .use(layer => FunApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
   )

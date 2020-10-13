@@ -9,10 +9,10 @@ lazy val root = (project in file("."))
   .settings(
     name := "fun-graphql",
     libraryDependencies ++= Seq(
-        "com.github.ghostdogpr" %% "caliban" % "0.7.5",
-        "com.github.ghostdogpr" %% "caliban-akka-http" % "0.7.5",
-        "dev.zio" %% "zio" % "1.0.0-RC18-2",
-        "de.heikoseeberger" %% "akka-http-circe" % "1.31.0",
+        "com.github.ghostdogpr" %% "caliban" % "0.9.2",
+        "com.github.ghostdogpr" %% "caliban-akka-http" % "0.9.2",
+        "dev.zio" %% "zio" % "1.0.3",
+        "de.heikoseeberger" %% "akka-http-circe" % "1.35.0",
         scalaTest % Test
       )
   )

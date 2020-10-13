@@ -1,24 +1,42 @@
 package example
 
 import caliban.schema.Annotations.GQLDescription
+import example.FunData.Relationship.{CHILD, PARENT}
 
 object FunData {
 
-  case class Character(
-    @GQLDescription("a unique Id for a character")
+  case class Person(
+    @GQLDescription("a unique Id for a family member")
     id: Int,
     @GQLDescription("the name of the character")
-    name: String,
+    name: Name,
     @GQLDescription("the age of a character, if provided")
-    age: Option[Int] = None
+    age: Option[Int] = None,
+    relationShip: Option[Relationship] = None
   )
+
+ sealed trait Relationship
+
+  object Relationship {
+    case object PARENT extends Relationship
+    case object CHILD extends Relationship
+    case object FRIEND extends Relationship
+  }
+
+  case class Name(first: String, last: String)
 
   case class CharacterArgs(name: String)
 
-  private val Reid = Character(1, "reid", Some(32))
-  private val Lauren = Character(2, "lauren")
-  private val Brooklyn = Character(3, "Brooklyn", Some(2))
-  private val Levi = Character(4, "Levi", Some(1))
+  case class FilterArgs(name: Option[String], relationship: Option[Relationship])
 
-  val CharactersDb = List(Reid, Lauren, Brooklyn, Levi)
+  case class Family(people: List[Person])
+
+  private val Reid = Person(1, Name("reid", "mewborne"), Some(32), Some(PARENT))
+  private val Lauren = Person(2, Name("lauren", "mewborne"))
+  private val Brooklyn = Person(3, Name("Brooklyn", "mewborne"), Some(2), Some(CHILD))
+  private val Levi = Person(4, Name("Levi", "mewborne"), Some(1))
+  private val Matt = Person(38, Name("Matt", "Wagner"), Some(38))
+  private val Bennett = Person(36, Name("Richard", "Bennett"), Some(34))
+
+  val personDb = List(Reid, Lauren, Brooklyn, Levi, Matt, Bennett)
 }

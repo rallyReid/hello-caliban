@@ -1,6 +1,6 @@
 package example
 
-import example.FunData.Character
+import example.FunData.{Person, Relationship}
 import zio._
 
 /**
@@ -11,30 +11,61 @@ object FunService {
   type ExampleService = Has[Service]
 
   trait Service {
-    def getCharacters: UIO[List[Character]]
-    def getCharacter(name: String): UIO[Option[Character]]
-    def deleteCharacter(name: String): UIO[Boolean]
+    def allPeople: UIO[List[Person]]
+    def getPersonByName(name: String): UIO[Option[Person]]
+    def removePerson(name: String): UIO[Boolean]
+    def familyByLastName(lastName:String): UIO[Option[List[Person]]]
+    def filterPeople(name: Option[String], relationShip: Option[Relationship] = None): UIO[List[Person]]
   }
 
-  def make(initialCharacters: List[Character]): ZLayer[Any, Nothing, ExampleService] =
+  def make(initialPeople: List[Person]): ZLayer[Any, Nothing, ExampleService] =
     ZLayer.fromEffect {
       for {
-        characters  <- Ref.make(initialCharacters)
+        peopleRepo  <- Ref.make(initialPeople)
         subscribers <- Ref.make(List.empty[Queue[String]])
       } yield new Service {
-        def getCharacters: UIO[List[Character]] = {
-          characters.get
+        def allPeople: UIO[List[Person]] = {
+          peopleRepo.get
         }
-        def getCharacter(
+        def getPersonByName(
           name: String
-        ): UIO[Option[Character]] = {
-          characters.get.map(_.find(c => c.name == name))
+        ): UIO[Option[Person]] = {
+          peopleRepo.get.map(_.find(c => c.name.first == name))
         }
 
-        def deleteCharacter(name: String): UIO[Boolean] = {
-          characters
+        def filterPeople(name: Option[String], relationship: Option[Relationship] = None): UIO[List[Person]] = {
+          (name, relationship) match {
+            case (None, None) => allPeople
+            case (Some(n), None) => {
+              peopleRepo.get
+                .map(_
+                  .filter(person => person.name.first.contains(n) || person.name.last.contains(n))
+                )
+            }
+            case (None, Some(r)) => peopleRepo.get
+              .map(_
+                .filter(person => person.relationShip.nonEmpty && person.relationShip.get == r))
+            case (Some(n), Some(r)) => peopleRepo.get
+              .map(_
+                .filter(person => person.name.first.contains(n) || person.name.last.contains(n))
+              ).map(_
+              .filter(person => person.relationShip.nonEmpty && person.relationShip.get == r))
+          }
+        }
+
+        def familyByLastName(lastName: String): UIO[Option[List[Person]]] = {
+          peopleRepo.get
+            .map(_.filter(_.name.last == lastName))
+            .map {
+              case filteredList if filteredList.isEmpty => None
+              case xs                                   => Some(xs)
+            }
+        }
+
+        def removePerson(name: String): UIO[Boolean] = {
+          peopleRepo
             .modify(list =>
-              if (list.exists(_.name == name)) (true, list.filterNot(_.name == name))
+              if (list.exists(_.name.first == name)) (true, list.filterNot(_.name.first == name))
               else (false, list)
             )
             .tap(deleted =>
