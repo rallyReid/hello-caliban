@@ -23,6 +23,8 @@ object ThePeoplesCalibanServer extends App with AkkaHttpCirceAdapter {
       .use(layer => PersonApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
   )
 
+  println(PersonApi.funApi.render)
+
   val route =
     path("api" / "graphql") {
       adapter.makeHttpService(interpreter)

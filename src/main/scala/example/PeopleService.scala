@@ -17,8 +17,12 @@ object PeopleService {
     def getPersonById(id: Int): UIO[Option[Person]]
     def findByIds(id: List[Int]): UIO[List[Person]]
     def removePerson(name: String): UIO[Boolean]
-    def familyByLastName(lastName:String): UIO[Option[List[Person]]]
-    def filterPeople(name: Option[String], relationShip: Option[Relationship] = None): UIO[List[Person]]
+    def familyByLastName(lastName: String): UIO[Option[List[Person]]]
+
+    def filterPeople(
+      name: Option[String],
+      relationShip: Option[Relationship] = None
+    ): UIO[List[Person]]
     def deletedEvents: ZStream[Any, Nothing, String]
   }
 
@@ -45,23 +49,31 @@ object PeopleService {
           peopleRepo.get.map(_.filter(person => ids.contains(person.id)))
         }
 
-        def filterPeople(name: Option[String], relationship: Option[Relationship] = None): UIO[List[Person]] = {
+        def filterPeople(
+          name: Option[String],
+          relationship: Option[Relationship] = None
+        ): UIO[List[Person]] = {
           (name, relationship) match {
             case (None, None) => allPeople
             case (Some(n), None) => {
               peopleRepo.get
-                .map(_
-                  .filter(person => person.name.first.contains(n) || person.name.last.contains(n))
+                .map(
+                  _.filter(person => person.name.first.contains(n) || person.name.last.contains(n))
                 )
             }
-            case (None, Some(r)) => peopleRepo.get
-              .map(_
-                .filter(person => person.relationship.nonEmpty && person.relationship.get == r))
-            case (Some(n), Some(r)) => peopleRepo.get
-              .map(_
-                .filter(person => person.name.first.contains(n) || person.name.last.contains(n))
-              ).map(_
-              .filter(person => person.relationship.nonEmpty && person.relationship.get == r))
+            case (None, Some(r)) =>
+              peopleRepo.get
+                .map(
+                  _.filter(person => person.relationship.nonEmpty && person.relationship.get == r)
+                )
+            case (Some(n), Some(r)) =>
+              peopleRepo.get
+                .map(
+                  _.filter(person => person.name.first.contains(n) || person.name.last.contains(n))
+                )
+                .map(
+                  _.filter(person => person.relationship.nonEmpty && person.relationship.get == r)
+                )
           }
         }
 
