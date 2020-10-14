@@ -6,7 +6,7 @@ import caliban.schema.GenericSchema
 import caliban.wrappers.ApolloTracing.apolloTracing
 import caliban.wrappers.Wrappers.{maxDepth, printSlowQueries, timeout}
 import caliban.{GraphQL, RootResolver}
-import example.PeopleData.{CharacterArgs, FilterArgs, Person, Relationship}
+import example.PeopleData._
 import example.PeopleService._
 import zio.URIO
 import zio.clock.Clock
@@ -27,49 +27,52 @@ object PersonApi extends GenericSchema[PeopleService] {
   def filterPeople(name: Option[String] = None, relationship: Option[Relationship] = None): URIO[PeopleService, List[Person]] =
     URIO.accessM(_.get.filterPeople(name, relationship))
 
+  def getPersonById(id: Int): URIO[PeopleService, Option[Person]] = URIO.accessM(_.get.getPersonById(id))
+
+  def getPeopleByIds(ids: List[Int]): URIO[PeopleService, List[Person]] = URIO.accessM(
+    _.get.findByIds(ids)
+  )
+
   def removePerson(name: String): URIO[PeopleService, Boolean] =
     URIO.accessM(_.get.removePerson(name))
-
-//  def addPerson(p: Person): URIO[PeopleService, Boolean] = {
-//    URIO.accessM(_.get.addPerson(p))
-//  }
 
   def deletedEvents: ZStream[PeopleService, Nothing, String] =
     ZStream.accessStream(_.get.deletedEvents)
 
   // we want to describe all of the queries we will allow.
   case class Queries(
-    @GQLDescription("Must Return all characters")
+    @GQLDescription("Some people in Reid's life...")
     people: URIO[PeopleService, List[Person]],
-    @GQLDescription("Return a character by name")
-    person: CharacterArgs => URIO[PeopleService, Option[Person]],
-    @GQLDescription("list People in the same family")
-    family: CharacterArgs => URIO[PeopleService, Option[List[Person]]],
+    @GQLDescription("Return a person by name")
+    person: PersonArgs => URIO[PeopleService, Option[Person]],
+    @GQLDescription("Return a person by id")
+    personById: PersonId => URIO[PeopleService, Option[Person]],
+    @GQLDescription("list people in the same family")
+    family: PersonArgs => URIO[PeopleService, Option[List[Person]]],
     filteredPeople: FilterArgs => URIO[PeopleService, List[Person]]
   )
 
   case class Mutations(
-    removePerson: CharacterArgs => URIO[PeopleService, Boolean]
-//    addPerson: Person => URIO[PeopleService, Boolean]
+    removePerson: PersonArgs => URIO[PeopleService, Boolean]
   )
 
-  case class Subscriptions(characterDeleted: ZStream[PeopleService, Nothing, String])
+  case class Subscriptions(personDeleted: ZStream[PeopleService, Nothing, String])
 
   // now we will tell our queries how to resolve.
   val resolver: Queries = Queries(
     people,
     args => getPersonByName(args.name),
+    args => getPersonById(args.id),
     args => family(args.name),
     filterArgs => filterPeople(filterArgs.name, filterArgs.relationship)
   )
   val mutationResolver:Mutations = Mutations(
     args => removePerson(args.name)
-//    p => addPerson(p)
   )
 
-  val subscriptionsResolver = Subscriptions(deletedEvents)
-  implicit val characterSchema: PersonApi.Typeclass[Person] = gen[Person]
-  implicit val characterArgsSchema: PersonApi.Typeclass[CharacterArgs] = gen[CharacterArgs]
+  val subscriptionsResolver: Subscriptions = Subscriptions(deletedEvents)
+  implicit val personSchema: PersonApi.Typeclass[Person] = gen[Person]
+  implicit val personArgsSchema: PersonApi.Typeclass[PersonArgs] = gen[PersonArgs]
 
   // Finally we describe our api.
   val funApi: GraphQL[Console with Clock with PeopleService] =
