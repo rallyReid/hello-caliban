@@ -1,12 +1,13 @@
 package example
 
-import caliban.schema.Annotations.GQLDescription
+import caliban.schema.Annotations.{GQLDeprecated, GQLDescription}
 import example.PeopleData.Relationship.{CHILD, FRIEND, PARENT}
 
 object PeopleData {
   @GQLDescription("usually a human...")
   case class Person(
     id: Int,
+    @GQLDescription("a name for being social.")
     name: Name,
     age: Option[Int] = None,
     relationship: Option[Relationship] = None,

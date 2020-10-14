@@ -33,6 +33,7 @@ object PersonApi extends GenericSchema[PeopleService] {
     filteredPeople: FilterArgs => URIO[PeopleService, List[Person]]
   )
 
+  // Optional Schemas...
   case class Mutation(removePerson: NameArgs => URIO[PeopleService, Boolean])
 
   case class Subscription(personDeleted: ZStream[PeopleService, Nothing, String])
@@ -46,14 +47,14 @@ object PersonApi extends GenericSchema[PeopleService] {
 
   // now we will tell our queries how to resolve.
   val queryResolver: Query = Query(
-    people,
-    args => getPersonByName(args.name),
-    args => getPersonById(args.id),
-    args => family(args.name),
+    reidsPeople,
+    nameArgs => getPersonByName(nameArgs.name),
+    idArg => getPersonById(idArg.id),
+    nameArgs => family(nameArgs.name),
     filterArgs => filterPeople(filterArgs.name, filterArgs.relationship)
   )
 
-  val mutationResolver: Mutation = Mutation(args => removePerson(args.name))
+  val mutationResolver: Mutation = Mutation(nameArgs => removePerson(nameArgs.name))
 
   val subscriptionsResolver: Subscription = Subscription(deletedEvents)
 
@@ -73,7 +74,9 @@ object PersonApi extends GenericSchema[PeopleService] {
     printErrors @@ // wrapper that logs errors
     apolloTracing // wrapper for https://github.com/apollographql/apollo-tracing
 
-  def people: URIO[PeopleService, List[Person]] = URIO.accessM(_.get.allPeople)
+
+  // domain logic for resolvers...
+  def reidsPeople: URIO[PeopleService, List[Person]] = URIO.accessM(_.get.allPeople)
 
   def getPersonByName(
     name: String
