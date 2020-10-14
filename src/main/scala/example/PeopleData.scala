@@ -1,9 +1,10 @@
 package example
 
+import caliban.schema.Annotations.GQLDescription
 import example.PeopleData.Relationship.{CHILD, FRIEND, PARENT}
 
 object PeopleData {
-
+  @GQLDescription("usually a human...")
   case class Person(
     id: Int,
     name: Name,

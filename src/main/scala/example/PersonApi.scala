@@ -24,23 +24,23 @@ object PersonApi extends GenericSchema[PeopleService] {
     @GQLDescription("Some people in Reid's life...")
     people: URIO[PeopleService, List[Person]],
     @GQLDescription("Return a person by name")
-    person: PersonArgs => URIO[PeopleService, Option[Person]],
+    personsName: NameArgs => URIO[PeopleService, Option[Person]],
     @GQLDescription("Return a person by id")
-    personById: PersonId => URIO[PeopleService, Option[Person]],
+    personById: IdArg => URIO[PeopleService, Option[Person]],
     @GQLDescription("List people in the same family")
-    family: PersonArgs => URIO[PeopleService, Option[List[Person]]],
+    family: NameArgs => URIO[PeopleService, Option[List[Person]]],
     @GQLDescription("Filters by name or relationship")
     filteredPeople: FilterArgs => URIO[PeopleService, List[Person]]
   )
 
-  case class Mutation(removePerson: PersonArgs => URIO[PeopleService, Boolean])
+  case class Mutation(removePerson: NameArgs => URIO[PeopleService, Boolean])
 
   case class Subscription(personDeleted: ZStream[PeopleService, Nothing, String])
 
   // Case classes for naming arguments
-  case class PersonArgs(name: String)
+  case class NameArgs(name: String)
 
-  case class PersonId(id: Int)
+  case class IdArg(id: Int)
 
   case class FilterArgs(name: Option[String], relationship: Option[Relationship])
 
@@ -61,11 +61,11 @@ object PersonApi extends GenericSchema[PeopleService] {
     * [[gen]] derives a generic typeclass instance for the type `T`
     */
   implicit val personSchema: PersonApi.Typeclass[Person] = gen[Person]
-  implicit val personArgsSchema: PersonApi.Typeclass[PersonArgs] = gen[PersonArgs]
+  implicit val personArgsSchema: PersonApi.Typeclass[NameArgs] = gen[NameArgs]
 
   // Finally we describe our api.
   val personApi: GraphQL[Console with Clock with PeopleService] =
-    graphQL(RootResolver(queryResolver, mutationResolver, subscriptionsResolver)) @@
+    graphQL(RootResolver(queryResolver, mutationResolver, subscriptionsResolver)) @@ // Wrappers
     maxFields(200) @@ // query analyzer that limit query fields
     maxDepth(30) @@ // query analyzer that limit query depth
     timeout(3 seconds) @@ // wrapper that fails slow queries
