@@ -20,10 +20,10 @@ object ThePeoplesCalibanServer extends App with AkkaHttpCirceAdapter {
     PeopleService
       .make(PeopleData.personDb)
       .memoize
-      .use(layer => PersonApi.funApi.interpreter.map(_.provideCustomLayer(layer)))
+      .use(layer => PersonApi.personApi.interpreter.map(_.provideCustomLayer(layer)))
   )
 
-  println(PersonApi.funApi.render)
+  println(PersonApi.personApi.render)
 
   val route =
     path("api" / "graphql") {

@@ -1,24 +1,20 @@
 package example
 
-import caliban.schema.Annotations.{GQLDescription, GQLInterface}
 import example.PeopleData.Relationship.{CHILD, FRIEND, PARENT}
 
 object PeopleData {
 
-  @GQLDescription("usually a human...")
   case class Person(
-    @GQLDescription("a unique Id for a family member")
     id: Int,
-    @GQLDescription("the name of the person")
     name: Name,
-    @GQLDescription("the age of a person, if provided")
     age: Option[Int] = None,
     relationship: Option[Relationship] = None,
     friends: List[Int] = List.empty,
     family: List[Int] = List.empty
   )
 
-  @GQLInterface
+  case class Name(first: String, last: String)
+
   sealed trait Relationship
 
   object Relationship {
@@ -26,16 +22,6 @@ object PeopleData {
     case object CHILD extends Relationship
     case object FRIEND extends Relationship
   }
-
-  case class Name(first: String, last: String)
-
-  @GQLDescription("arguments for querying a person")
-  case class PersonArgs(name: String)
-
-  @GQLDescription("define a Person ID")
-  case class PersonId(id: Int)
-
-  case class FilterArgs(name: Option[String], relationship: Option[Relationship])
 
   private val Reid = Person(
     id = 1,
