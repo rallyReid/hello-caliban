@@ -14,10 +14,11 @@ object PeopleService {
   trait Service {
     def allPeople: UIO[List[Person]]
     def getPersonByName(name: String): UIO[Option[Person]]
+    def getPersonById(id: Int): UIO[Option[Person]]
+    def findByIds(id: List[Int]): UIO[List[Person]]
     def removePerson(name: String): UIO[Boolean]
     def familyByLastName(lastName:String): UIO[Option[List[Person]]]
     def filterPeople(name: Option[String], relationShip: Option[Relationship] = None): UIO[List[Person]]
-//    def addPerson(p: Person): UIO[Boolean]
     def deletedEvents: ZStream[Any, Nothing, String]
   }
 
@@ -36,6 +37,14 @@ object PeopleService {
           peopleRepo.get.map(_.find(c => c.name.first == name))
         }
 
+        def getPersonById(id: Int): UIO[Option[Person]] = {
+          peopleRepo.get.map(_.find(_.id == id))
+        }
+
+        def findByIds(ids: List[Int]): UIO[List[Person]] = {
+          peopleRepo.get.map(_.filter(person => ids.contains(person.id)))
+        }
+
         def filterPeople(name: Option[String], relationship: Option[Relationship] = None): UIO[List[Person]] = {
           (name, relationship) match {
             case (None, None) => allPeople
@@ -47,12 +56,12 @@ object PeopleService {
             }
             case (None, Some(r)) => peopleRepo.get
               .map(_
-                .filter(person => person.relationShip.nonEmpty && person.relationShip.get == r))
+                .filter(person => person.relationship.nonEmpty && person.relationship.get == r))
             case (Some(n), Some(r)) => peopleRepo.get
               .map(_
                 .filter(person => person.name.first.contains(n) || person.name.last.contains(n))
               ).map(_
-              .filter(person => person.relationShip.nonEmpty && person.relationShip.get == r))
+              .filter(person => person.relationship.nonEmpty && person.relationship.get == r))
           }
         }
 
@@ -86,10 +95,6 @@ object PeopleService {
               )
             )
         }
-
-//        def addPerson(p: Person): UIO[Boolean] = {
-//        ???
-//        }
 
         def deletedEvents: ZStream[Any, Nothing, String] = ZStream.unwrap {
           for {
