@@ -30,10 +30,11 @@ object ThePeoplesCalibanServer extends App with AkkaHttpCirceAdapter {
       getFromResource("graphiql.html")
     }
 
-  val bindingFuture = Http().bindAndHandle(route, "localhost", 8088)
+  val bindingFuture = Http().newServerAt("localhost", 8088).bindFlow(route)
   println(s"Server online at http://localhost:8088/graphiql\nPress RETURN to stop...")
   StdIn.readLine()
   bindingFuture
     .flatMap(_.unbind())
     .onComplete(_ => system.terminate())
+
 }
